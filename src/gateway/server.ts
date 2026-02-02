@@ -559,6 +559,81 @@ async function handleRPCRequest(
       return createRPCResponse(request.id, { success: true, identity: getIdentity() });
     }
 
+    // Config management
+    case "config.update": {
+      const configParams = request.params as {
+        model?: {
+          provider?: string;
+          modelName?: string;
+          apiKey?: string;
+          baseUrl?: string;
+        };
+        channels?: {
+          feishu?: {
+            appId?: string;
+            appSecret?: string;
+            mode?: 'websocket' | 'webhook';
+          };
+        };
+      };
+
+      try {
+        // Merge with existing config
+        const updatedConfig = { ...config };
+
+        // Update model config based on provider
+        if (configParams.model) {
+          const { provider, apiKey, baseUrl } = configParams.model;
+
+          updatedConfig.models = updatedConfig.models || {};
+
+          // MiniMax uses Anthropic-compatible API
+          if (provider === 'minimax' && apiKey) {
+            updatedConfig.models.anthropic = {
+              apiKey,
+              baseUrl: baseUrl || 'https://api.minimaxi.com/anthropic',
+              authType: 'bearer'
+            };
+          } else if (provider === 'anthropic' && apiKey) {
+            updatedConfig.models.anthropic = { apiKey, baseUrl };
+          } else if (provider === 'openai' && apiKey) {
+            updatedConfig.models.openai = { apiKey, baseUrl, model: configParams.model.modelName };
+          }
+        }
+
+        if (configParams.channels?.feishu) {
+          const feishuParams = configParams.channels.feishu;
+          if (feishuParams.appId && feishuParams.appSecret && feishuParams.mode) {
+            updatedConfig.channels = updatedConfig.channels || {};
+            updatedConfig.channels.feishu = {
+              appId: feishuParams.appId,
+              appSecret: feishuParams.appSecret,
+              mode: feishuParams.mode,
+              dmPolicy: 'pairing',
+              requireMention: true,
+            };
+          }
+        }
+
+        // Save to disk
+        const { saveConfig } = await import('../config/io.js');
+        saveConfig(updatedConfig);
+
+        // Update in-memory config
+        Object.assign(config, updatedConfig);
+
+        logger.info("Config updated successfully");
+        return createRPCResponse(request.id, { success: true });
+      } catch (error) {
+        logger.error("Failed to update config", error);
+        return createRPCResponse(
+          request.id,
+          undefined,
+          createRPCError(RPCErrorCodes.INTERNAL_ERROR, "Failed to save config")
+        );
+      }
+    }
+
     // Speech APIs (TTS/STT)
     case "speech.tts": {
       const ttsParams = request.params as {

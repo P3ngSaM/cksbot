@@ -1863,6 +1863,7 @@ export class CKSBotApp extends LitElement {
   }
 
   private async onboardingComplete() {
+    // Save to localStorage
     saveStoredSettings({
       onboardingComplete: true,
       botName: this.botName || 'AI 助手',
@@ -1875,8 +1876,31 @@ export class CKSBotApp extends LitElement {
       feishuAppSecret: this.feishuAppSecret,
       feishuMode: this.feishuMode,
     });
+
     this.showOnboarding = false;
     await this.initializeApp();
+
+    // Sync config to backend
+    try {
+      await this.client.request('config.update', {
+        model: {
+          provider: this.modelProvider,
+          modelName: this.modelName,
+          apiKey: this.apiKey,
+          baseUrl: this.baseUrl,
+        },
+        channels: {
+          feishu: this.feishuAppId && this.feishuAppSecret ? {
+            appId: this.feishuAppId,
+            appSecret: this.feishuAppSecret,
+            mode: this.feishuMode,
+          } : undefined,
+        },
+      });
+      console.log('Config synced to backend');
+    } catch (error) {
+      console.error('Failed to sync config:', error);
+    }
 
     // Sync identity to backend after connection established
     try {
