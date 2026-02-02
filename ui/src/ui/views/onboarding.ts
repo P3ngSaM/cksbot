@@ -826,10 +826,10 @@ function renderProfile(props: OnboardingProps) {
       <div class="avatar-section">
         <div class="avatar-upload">
           <div class="avatar-preview" @click=${handleAvatarClick}>
-            ${props.botAvatar ? html`
+            ${props.botAvatar && props.botAvatar.startsWith('data:') ? html`
               <img src=${props.botAvatar} alt="Avatar" />
             ` : html`
-              <div class="avatar-placeholder">${icons.image}</div>
+              <img src="/cks-logo.png" alt="CKS Bot" />
             `}
           </div>
           <div class="avatar-upload-overlay" @click=${handleAvatarClick}>
