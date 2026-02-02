@@ -23,6 +23,12 @@ ui/dist/
 config.json
 .cksbot/
 
+# Secrets - DO NOT COMMIT
+GITHUB_TOKEN.md
+*.token
+*.secret
+credentials.json
+
 # Logs
 logs/
 *.log
