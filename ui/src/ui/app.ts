@@ -1101,6 +1101,7 @@ export class CKSBotApp extends LitElement {
   @state() feishuMode: 'websocket' | 'webhook' = 'websocket';
   @state() botName = '';
   @state() botAvatar = 'F';
+  @state() showFeishuGuide = false;
 
   private client: GatewayClient;
 
@@ -2046,6 +2047,9 @@ export class CKSBotApp extends LitElement {
         onBotNameChange: (v) => { this.botName = v; },
         onBotAvatarChange: (v) => { this.botAvatar = v; },
         onAvatarUpload: (file: File) => this.handleAvatarUpload(file),
+        showFeishuGuide: this.showFeishuGuide,
+        onShowFeishuGuide: () => { this.showFeishuGuide = true; },
+        onHideFeishuGuide: () => { this.showFeishuGuide = false; },
         onNext: () => this.onboardingNext(),
         onBack: () => this.onboardingBack(),
         onSkip: () => this.onboardingSkip(),

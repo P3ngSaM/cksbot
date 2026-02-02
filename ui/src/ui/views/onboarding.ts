@@ -18,6 +18,8 @@ const icons = {
   info: html`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`,
   helpCircle: html`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`,
   externalLink: html`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>`,
+  x: html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>`,
+  bookOpen: html`<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
 };
 
 export type OnboardingStep = 'welcome' | 'model' | 'feishu' | 'profile' | 'complete';
@@ -36,6 +38,8 @@ export interface OnboardingProps {
   // Profile
   botName: string;
   botAvatar: string;
+  // UI state
+  showFeishuGuide: boolean;
   // Callbacks
   onModelProviderChange: (value: string) => void;
   onModelNameChange: (value: string) => void;
@@ -47,6 +51,8 @@ export interface OnboardingProps {
   onBotNameChange: (value: string) => void;
   onBotAvatarChange: (value: string) => void;
   onAvatarUpload: (file: File) => void;
+  onShowFeishuGuide: () => void;
+  onHideFeishuGuide: () => void;
   onNext: () => void;
   onBack: () => void;
   onSkip: () => void;
@@ -150,6 +156,30 @@ export function renderOnboarding(props: OnboardingProps) {
         text-align: center;
         margin: 0 0 48px 0;
         line-height: 1.5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      .btn-guide {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #007AFF;
+        background: rgba(0, 122, 255, 0.08);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+      }
+
+      .btn-guide:hover {
+        background: rgba(0, 122, 255, 0.15);
+        transform: translateY(-1px);
       }
 
       /* Form Elements */
@@ -432,60 +462,6 @@ export function renderOnboarding(props: OnboardingProps) {
         color: #737373;
       }
 
-      /* Help Card */
-      .help-card {
-        display: flex;
-        gap: 14px;
-        padding: 16px 18px;
-        background: rgba(0, 122, 255, 0.04);
-        border: 1px solid rgba(0, 122, 255, 0.12);
-        border-radius: 12px;
-        margin-bottom: 24px;
-      }
-
-      .help-card-icon {
-        flex-shrink: 0;
-        width: 24px;
-        height: 24px;
-        color: #007AFF;
-        margin-top: 2px;
-      }
-
-      .help-card-content {
-        flex: 1;
-      }
-
-      .help-card-title {
-        font-size: 14px;
-        font-weight: 600;
-        color: #171717;
-        margin-bottom: 8px;
-      }
-
-      .help-card-steps {
-        margin: 0;
-        padding-left: 20px;
-        font-size: 13px;
-        color: #404040;
-        line-height: 1.6;
-      }
-
-      .help-card-steps li {
-        margin-bottom: 4px;
-      }
-
-      .help-card-steps a {
-        color: #007AFF;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-      }
-
-      .help-card-steps a:hover {
-        text-decoration: underline;
-      }
-
       /* Buttons */
       .button-group {
         display: flex;
@@ -661,6 +637,213 @@ export function renderOnboarding(props: OnboardingProps) {
           transition-duration: 0.01ms !important;
         }
       }
+
+      /* Modal */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+        animation: fadeIn 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      .modal-content {
+        background: #FFFFFF;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 600px;
+        max-height: 85vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUp 300ms cubic-bezier(0.25, 0.1, 0.25, 1);
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24px 28px;
+        border-bottom: 1px solid #E5E5E5;
+      }
+
+      .modal-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #171717;
+        margin: 0;
+      }
+
+      .modal-close {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        color: #737373;
+        transition: all 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+      }
+
+      .modal-close:hover {
+        background: #FAFAFA;
+        color: #171717;
+      }
+
+      .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 28px;
+      }
+
+      .modal-body::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .modal-body::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .modal-body::-webkit-scrollbar-thumb {
+        background: #D4D4D4;
+        border-radius: 4px;
+      }
+
+      .modal-body::-webkit-scrollbar-thumb:hover {
+        background: #A0A0A0;
+      }
+
+      .modal-footer {
+        padding: 20px 28px;
+        border-top: 1px solid #E5E5E5;
+        display: flex;
+        justify-content: center;
+      }
+
+      .guide-section {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+
+      .guide-step {
+        display: flex;
+        gap: 16px;
+      }
+
+      .guide-step-number {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #171717;
+        color: #FFFFFF;
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .guide-step-content {
+        flex: 1;
+      }
+
+      .guide-step-content h4 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #171717;
+        margin: 0 0 12px 0;
+      }
+
+      .guide-step-content p {
+        font-size: 14px;
+        color: #404040;
+        line-height: 1.6;
+        margin: 0 0 10px 0;
+      }
+
+      .guide-step-content ul {
+        margin: 8px 0;
+        padding-left: 20px;
+        font-size: 14px;
+        color: #404040;
+        line-height: 1.8;
+      }
+
+      .guide-step-content ul ul {
+        margin-top: 6px;
+      }
+
+      .guide-step-content li {
+        margin-bottom: 6px;
+      }
+
+      .guide-step-content code {
+        padding: 2px 6px;
+        background: #FAFAFA;
+        border: 1px solid #E5E5E5;
+        border-radius: 4px;
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+        font-size: 13px;
+        color: #D4AF37;
+      }
+
+      .guide-step-content a {
+        color: #007AFF;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+
+      .guide-step-content a:hover {
+        text-decoration: underline;
+      }
+
+      .guide-note {
+        padding: 12px 14px;
+        background: rgba(212, 175, 55, 0.08);
+        border-left: 3px solid #D4AF37;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #404040;
+        margin-top: 12px;
+        line-height: 1.5;
+      }
+
+      .guide-note strong {
+        color: #D4AF37;
+        font-weight: 600;
+      }
     </style>
   `;
 }
@@ -789,21 +972,13 @@ function renderFeishu(props: OnboardingProps) {
     <div class="step-container">
       <div class="step-icon">${icons.smartphone}</div>
       <h2 class="step-title">连接飞书</h2>
-      <p class="step-subtitle">配置飞书机器人</p>
-
-      <!-- Help Card -->
-      <div class="help-card">
-        <div class="help-card-icon">${icons.helpCircle}</div>
-        <div class="help-card-content">
-          <div class="help-card-title">如何获取凭证？</div>
-          <ol class="help-card-steps">
-            <li>访问 <a href="https://open.feishu.cn/app" target="_blank" rel="noopener">飞书开放平台 ${icons.externalLink}</a></li>
-            <li>创建企业自建应用</li>
-            <li>在"凭证与基础信息"页面获取 App ID 和 App Secret</li>
-            <li>在"事件订阅"中启用机器人功能</li>
-          </ol>
-        </div>
-      </div>
+      <p class="step-subtitle">
+        配置飞书机器人
+        <button class="btn-guide" @click=${props.onShowFeishuGuide}>
+          ${icons.bookOpen}
+          查看教程
+        </button>
+      </p>
 
       <div class="form-group">
         <label class="form-label" for="app-id">App ID</label>
@@ -868,6 +1043,128 @@ function renderFeishu(props: OnboardingProps) {
           下一步
           ${icons.arrowRight}
         </button>
+      </div>
+    </div>
+
+    ${props.showFeishuGuide ? renderFeishuGuideModal(props) : ''}
+  `;
+}
+
+function renderFeishuGuideModal(props: OnboardingProps) {
+  return html`
+    <div class="modal-overlay" @click=${props.onHideFeishuGuide}>
+      <div class="modal-content" @click=${(e: Event) => e.stopPropagation()}>
+        <div class="modal-header">
+          <h3 class="modal-title">飞书机器人配置教程</h3>
+          <button class="modal-close" @click=${props.onHideFeishuGuide}>
+            ${icons.x}
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="guide-section">
+            <div class="guide-step">
+              <div class="guide-step-number">1</div>
+              <div class="guide-step-content">
+                <h4>创建飞书应用</h4>
+                <p>访问 <a href="https://open.feishu.cn/app" target="_blank" rel="noopener">飞书开放平台 ${icons.externalLink}</a></p>
+                <p>点击"创建企业自建应用"按钮</p>
+                <ul>
+                  <li>应用名称：CKS Bot（或自定义名称）</li>
+                  <li>应用描述：AI 语音助手</li>
+                  <li>应用图标：上传你的 Logo</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="guide-step">
+              <div class="guide-step-number">2</div>
+              <div class="guide-step-content">
+                <h4>获取应用凭证</h4>
+                <p>在左侧导航栏，点击"凭证与基础信息"</p>
+                <p>在页面中找到以下信息：</p>
+                <ul>
+                  <li><strong>App ID</strong>：以 <code>cli_</code> 开头的字符串</li>
+                  <li><strong>App Secret</strong>：点击"查看"按钮，复制密钥</li>
+                </ul>
+                <div class="guide-note">
+                  <strong>注意：</strong>App Secret 只能查看一次，请妥善保管
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step">
+              <div class="guide-step-number">3</div>
+              <div class="guide-step-content">
+                <h4>配置机器人权限</h4>
+                <p>在左侧导航栏，点击"权限管理"</p>
+                <p>搜索并开启以下权限：</p>
+                <ul>
+                  <li>获取用户基本信息（contact:user.base:readonly）</li>
+                  <li>接收群聊消息（im:message.group:readonly）</li>
+                  <li>接收单聊消息（im:message.p2p:readonly）</li>
+                  <li>发送消息（im:message:send_as_bot）</li>
+                  <li>获取群组信息（im:chat:readonly）</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="guide-step">
+              <div class="guide-step-number">4</div>
+              <div class="guide-step-content">
+                <h4>启用机器人功能</h4>
+                <p>在左侧导航栏，点击"应用功能" → "机器人"</p>
+                <p>完成以下配置：</p>
+                <ul>
+                  <li>启用机器人功能</li>
+                  <li>配置消息接收方式：
+                    <ul>
+                      <li><strong>WebSocket（推荐）</strong>：无需额外配置</li>
+                      <li><strong>Webhook</strong>：需要填写回调 URL</li>
+                    </ul>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="guide-step">
+              <div class="guide-step-number">5</div>
+              <div class="guide-step-content">
+                <h4>发布应用版本</h4>
+                <p>在左侧导航栏，点击"版本管理与发布"</p>
+                <p>创建一个版本并发布到企业内部：</p>
+                <ul>
+                  <li>点击"创建版本"</li>
+                  <li>填写版本说明</li>
+                  <li>提交审核</li>
+                  <li>审核通过后，点击"发布"</li>
+                </ul>
+                <div class="guide-note">
+                  <strong>提示：</strong>企业自建应用审核通常几分钟内完成
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-step">
+              <div class="guide-step-number">6</div>
+              <div class="guide-step-content">
+                <h4>测试机器人</h4>
+                <p>在飞书客户端中：</p>
+                <ul>
+                  <li>搜索你的机器人名称</li>
+                  <li>添加机器人到会话或群组</li>
+                  <li>@机器人 发送消息测试</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-primary btn-large" @click=${props.onHideFeishuGuide}>
+            知道了
+          </button>
+        </div>
       </div>
     </div>
   `;
