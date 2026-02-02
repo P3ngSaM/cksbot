@@ -1851,6 +1851,16 @@ export class CKSBotApp extends LitElement {
     this.onboardingNext();
   }
 
+  private handleAvatarUpload(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      this.botAvatar = result;
+      this.requestUpdate();
+    };
+    reader.readAsDataURL(file);
+  }
+
   private async onboardingComplete() {
     saveStoredSettings({
       onboardingComplete: true,
@@ -2035,6 +2045,7 @@ export class CKSBotApp extends LitElement {
         onFeishuModeChange: (v) => { this.feishuMode = v; },
         onBotNameChange: (v) => { this.botName = v; },
         onBotAvatarChange: (v) => { this.botAvatar = v; },
+        onAvatarUpload: (file: File) => this.handleAvatarUpload(file),
         onNext: () => this.onboardingNext(),
         onBack: () => this.onboardingBack(),
         onSkip: () => this.onboardingSkip(),
