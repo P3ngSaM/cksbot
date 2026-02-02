@@ -1,0 +1,209 @@
+/**
+ * Apple Design System - Authentic macOS/iOS Aesthetic
+ * Based on Apple HIG and SF Pro Design
+ */
+
+/* ==================== Color System ==================== */
+:root {
+  /* Light Mode - Apple's Refined Neutrals */
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F5F5F7;      /* Apple's signature off-white */
+  --color-bg-tertiary: #E8E8ED;
+  --color-bg-elevated: #FFFFFF;
+
+  /* Glass/Vibrancy Effects */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg-thick: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-blur: saturate(180%) blur(20px);
+
+  /* Text Hierarchy */
+  --color-text-primary: #1D1D1F;      /* Near-black, not pure black */
+  --color-text-secondary: #6E6E73;    /* Muted gray for secondary info */
+  --color-text-tertiary: #86868B;     /* Light gray for hints */
+  --color-text-placeholder: #A1A1A6;
+
+  /* Apple System Colors */
+  --color-blue: #007AFF;              /* iOS Blue */
+  --color-blue-hover: #0051D5;
+  --color-blue-light: rgba(0, 122, 255, 0.1);
+  --color-green: #34C759;
+  --color-red: #FF3B30;
+  --color-orange: #FF9500;
+  --color-yellow: #FFCC00;
+  --color-purple: #AF52DE;
+
+  /* Borders & Dividers */
+  --color-border-subtle: rgba(0, 0, 0, 0.04);
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-strong: rgba(0, 0, 0, 0.12);
+  --color-divider: rgba(60, 60, 67, 0.12);
+
+  /* Shadows - Apple's Signature Soft Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03),
+               0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px 0 rgba(0, 0, 0, 0.04),
+               0 4px 16px 0 rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px 0 rgba(0, 0, 0, 0.08),
+               0 8px 32px 0 rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 8px 32px 0 rgba(0, 0, 0, 0.12),
+               0 16px 64px 0 rgba(0, 0, 0, 0.16);
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-primary: #000000;
+    --color-bg-secondary: #1C1C1E;
+    --color-bg-tertiary: #2C2C2E;
+    --color-bg-elevated: #1C1C1E;
+
+    --glass-bg: rgba(28, 28, 30, 0.8);
+    --glass-bg-thick: rgba(28, 28, 30, 0.92);
+    --glass-border: rgba(255, 255, 255, 0.08);
+
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #AEAEB2;
+    --color-text-tertiary: #8E8E93;
+    --color-text-placeholder: #636366;
+
+    --color-blue: #0A84FF;
+    --color-blue-hover: #409CFF;
+    --color-blue-light: rgba(10, 132, 255, 0.15);
+    --color-green: #30D158;
+    --color-red: #FF453A;
+    --color-orange: #FF9F0A;
+
+    --color-border-subtle: rgba(255, 255, 255, 0.04);
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-strong: rgba(255, 255, 255, 0.12);
+    --color-divider: rgba(255, 255, 255, 0.1);
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3),
+                 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 2px 8px 0 rgba(0, 0, 0, 0.4),
+                 0 4px 16px 0 rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 4px 16px 0 rgba(0, 0, 0, 0.5),
+                 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* ==================== Typography ==================== */
+:root {
+  /* SF Pro Font Stack */
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Code", monospace;
+
+  /* Type Scale - Apple's Precise Sizing */
+  --text-xs: 11px;      /* Fine print */
+  --text-sm: 13px;      /* Body small */
+  --text-base: 15px;    /* Body */
+  --text-md: 17px;      /* Body emphasized */
+  --text-lg: 20px;      /* Subhead */
+  --text-xl: 24px;      /* Title 3 */
+  --text-2xl: 28px;     /* Title 2 */
+  --text-3xl: 34px;     /* Title 1 */
+  --text-4xl: 40px;     /* Large title */
+  --text-5xl: 48px;     /* Display */
+
+  /* Line Heights - Optimized for Readability */
+  --leading-tight: 1.2;
+  --leading-snug: 1.375;
+  --leading-normal: 1.47;  /* Apple's preferred body line height */
+  --leading-relaxed: 1.6;
+
+  /* Letter Spacing */
+  --tracking-tight: -0.02em;   /* For large headings */
+  --tracking-normal: 0;
+  --tracking-wide: 0.01em;
+
+  /* Font Weights */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+}
+
+/* ==================== Spacing System ==================== */
+:root {
+  /* Apple's 4px Base Grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+}
+
+/* ==================== Border Radius ==================== */
+:root {
+  /* Apple's Signature Rounded Corners */
+  --radius-xs: 4px;     /* Small elements */
+  --radius-sm: 6px;     /* Buttons, badges */
+  --radius-md: 10px;    /* Cards, inputs */
+  --radius-lg: 14px;    /* Modals, sheets */
+  --radius-xl: 18px;    /* Large containers */
+  --radius-2xl: 24px;   /* Hero sections */
+  --radius-3xl: 32px;   /* Extra large cards */
+  --radius-full: 9999px; /* Pills, avatars */
+}
+
+/* ==================== Motion & Animation ==================== */
+:root {
+  /* Apple's Smooth Easing Curves */
+  --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);        /* Entering */
+  --ease-in: cubic-bezier(0.42, 0, 1, 1);              /* Exiting */
+  --ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);       /* Both */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);    /* Bouncy */
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);        /* Extra smooth */
+
+  /* Durations - Quick & Responsive */
+  --duration-instant: 0ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --duration-slower: 500ms;
+}
+
+/* Respect User Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==================== Z-Index Scale ==================== */
+:root {
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-fixed: 1200;
+  --z-modal-backdrop: 1300;
+  --z-modal: 1400;
+  --z-popover: 1500;
+  --z-tooltip: 1600;
+}
+
+/* ==================== Interactive States ==================== */
+:root {
+  --hover-lift: translateY(-1px);
+  --hover-scale: scale(1.01);
+  --press-scale: scale(0.98);
+  --active-opacity: 0.8;
+}
+
+/* ==================== Blur Effects ==================== */
+:root {
+  --blur-sm: blur(8px);
+  --blur-md: blur(16px);
+  --blur-lg: blur(24px);
+  --blur-xl: blur(40px);
+}

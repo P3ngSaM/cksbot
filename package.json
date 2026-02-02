@@ -1,0 +1,49 @@
+{
+  "name": "cksbot",
+  "version": "0.1.0",
+  "description": "CKS Bot - AI 语音助手，通过飞书机器人接收指令，本地执行任务",
+  "type": "module",
+  "bin": {
+    "cksbot": "./dist/src/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/src/index.js",
+    "cksbot": "node dist/src/index.js",
+    "ui": "cd ui && npm run dev",
+    "ui:build": "cd ui && npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "@hono/node-server": "^1.13.0",
+    "@larksuiteoapi/node-sdk": "^1.35.0",
+    "commander": "^12.1.0",
+    "hono": "^4.6.0",
+    "json5": "^2.2.3",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.12",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "feishu",
+    "lark",
+    "agent",
+    "claude",
+    "ai"
+  ],
+  "license": "MIT"
+}
