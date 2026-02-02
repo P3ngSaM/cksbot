@@ -16,6 +16,8 @@ const icons = {
   upload: html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>`,
   image: html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`,
   info: html`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`,
+  helpCircle: html`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`,
+  externalLink: html`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>`,
 };
 
 export type OnboardingStep = 'welcome' | 'model' | 'feishu' | 'profile' | 'complete';
@@ -430,6 +432,60 @@ export function renderOnboarding(props: OnboardingProps) {
         color: #737373;
       }
 
+      /* Help Card */
+      .help-card {
+        display: flex;
+        gap: 14px;
+        padding: 16px 18px;
+        background: rgba(0, 122, 255, 0.04);
+        border: 1px solid rgba(0, 122, 255, 0.12);
+        border-radius: 12px;
+        margin-bottom: 24px;
+      }
+
+      .help-card-icon {
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        color: #007AFF;
+        margin-top: 2px;
+      }
+
+      .help-card-content {
+        flex: 1;
+      }
+
+      .help-card-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #171717;
+        margin-bottom: 8px;
+      }
+
+      .help-card-steps {
+        margin: 0;
+        padding-left: 20px;
+        font-size: 13px;
+        color: #404040;
+        line-height: 1.6;
+      }
+
+      .help-card-steps li {
+        margin-bottom: 4px;
+      }
+
+      .help-card-steps a {
+        color: #007AFF;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+
+      .help-card-steps a:hover {
+        text-decoration: underline;
+      }
+
       /* Buttons */
       .button-group {
         display: flex;
@@ -734,6 +790,20 @@ function renderFeishu(props: OnboardingProps) {
       <div class="step-icon">${icons.smartphone}</div>
       <h2 class="step-title">连接飞书</h2>
       <p class="step-subtitle">配置飞书机器人</p>
+
+      <!-- Help Card -->
+      <div class="help-card">
+        <div class="help-card-icon">${icons.helpCircle}</div>
+        <div class="help-card-content">
+          <div class="help-card-title">如何获取凭证？</div>
+          <ol class="help-card-steps">
+            <li>访问 <a href="https://open.feishu.cn/app" target="_blank" rel="noopener">飞书开放平台 ${icons.externalLink}</a></li>
+            <li>创建企业自建应用</li>
+            <li>在"凭证与基础信息"页面获取 App ID 和 App Secret</li>
+            <li>在"事件订阅"中启用机器人功能</li>
+          </ol>
+        </div>
+      </div>
 
       <div class="form-group">
         <label class="form-label" for="app-id">App ID</label>
