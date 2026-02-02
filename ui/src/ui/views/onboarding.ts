@@ -81,20 +81,11 @@ function renderWelcome(props: OnboardingProps) {
   return html`
     <div class="onboarding-step animate-rise">
       <div class="onboarding-logo">
-        <svg viewBox="0 0 100 100" width="120" height="120">
-          <defs>
-            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#6366F1" />
-              <stop offset="100%" style="stop-color:#8B5CF6" />
-            </linearGradient>
-          </defs>
-          <circle cx="50" cy="50" r="48" fill="url(#logoGrad)"/>
-          <text x="50" y="68" font-family="Arial" font-size="50" font-weight="bold" fill="white" text-anchor="middle">F</text>
-        </svg>
+        <img src="/cks-logo.png" alt="CKS Bot Logo" style="width: 120px; height: 120px; border-radius: 24px;" />
       </div>
-      <h1 class="onboarding-title">欢迎使用 FeishuPilot</h1>
+      <h1 class="onboarding-title">欢迎使用 CKS Bot</h1>
       <p class="onboarding-subtitle">
-        您的飞书智能助手，让 AI 帮您完成更多任务
+        您的 AI 语音助手，让 AI 帮您完成更多任务
       </p>
       <div class="onboarding-features">
         <div class="feature-item">
@@ -357,7 +348,7 @@ function renderComplete(props: OnboardingProps) {
       <div class="complete-icon">${icons.partyPopper}</div>
       <h1 class="onboarding-title">配置完成！</h1>
       <p class="onboarding-subtitle">
-        您的 FeishuPilot 已准备就绪
+        您的 CKS Bot 已准备就绪
       </p>
 
       <div class="complete-summary">

@@ -1911,7 +1911,8 @@ export class CKSBotApp extends LitElement {
               <rect width="40" height="40" rx="10" fill="url(#appleGrad)"/>
               <text x="20" y="27" font-family="system-ui" font-size="20" font-weight="600" fill="white" text-anchor="middle">F</text>
             </svg>
-            <span class="sidebar-logo-text">FeishuPilot</span>
+            <img src="/cks-logo.png" alt="CKS Bot" style="width: 32px; height: 32px; border-radius: 8px;" />
+            <span class="sidebar-logo-text">CKS Bot</span>
           </div>
         </div>
 
