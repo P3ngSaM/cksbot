@@ -4,9 +4,11 @@
 
 import { html } from 'lit';
 
-interface SettingsProps {}
+interface SettingsProps {
+  onRestartOnboarding?: () => void;
+}
 
-export function renderSettings(_props: SettingsProps) {
+export function renderSettings(props: SettingsProps) {
   return html`
     <div class="grid-2">
       <!-- 模型配置 -->
@@ -84,6 +86,24 @@ export function renderSettings(_props: SettingsProps) {
         </div>
       </div>
       <button class="btn btn-primary">💾 保存</button>
+    </div>
+
+    <div class="card" style="margin-top: var(--spacing-lg);">
+      <div class="card-header">
+        <h3 class="card-title">⚙️ 系统操作</h3>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-md); background: var(--bg-secondary); border-radius: var(--radius-md);">
+          <div>
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">重新配置向导</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">返回配置向导重新设置所有参数</div>
+          </div>
+          <button class="btn btn-primary" @click=${props.onRestartOnboarding}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+            重新配置
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="card" style="margin-top: var(--spacing-lg);">

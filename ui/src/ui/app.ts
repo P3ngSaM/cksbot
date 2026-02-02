@@ -1862,6 +1862,15 @@ export class CKSBotApp extends LitElement {
     reader.readAsDataURL(file);
   }
 
+  private restartOnboarding() {
+    // Reset onboarding state
+    this.showOnboarding = true;
+    this.onboardingStep = 'welcome';
+    // Navigate to home
+    this.activeTab = 'dashboard';
+    window.history.pushState({}, '', '/');
+  }
+
   private async onboardingComplete() {
     // Save to localStorage
     saveStoredSettings({
@@ -2042,7 +2051,9 @@ export class CKSBotApp extends LitElement {
       case 'logs':
         return renderLogs({ logs: this.logs });
       case 'settings':
-        return renderSettings({});
+        return renderSettings({
+          onRestartOnboarding: () => this.restartOnboarding(),
+        });
       default:
         return html`<div class="empty-state">页面不存在</div>`;
     }
