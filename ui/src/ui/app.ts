@@ -1083,6 +1083,8 @@ export class CKSBotApp extends LitElement {
   private realtimeAudioContext: AudioContext | null = null;
   private realtimeMediaStream: MediaStream | null = null;
   private realtimeProcessor: ScriptProcessorNode | null = null;
+  private currentAudioSource: AudioBufferSourceNode | null = null;  // Track current playing audio
+  private isPlayingAudio = false;
 
   // Assistant & User Identity
   @state() assistantIdentity: AssistantIdentity = normalizeAssistantIdentity({});
@@ -1100,11 +1102,14 @@ export class CKSBotApp extends LitElement {
   @state() feishuAppId = '';
   @state() feishuAppSecret = '';
   @state() feishuMode: 'websocket' | 'webhook' = 'websocket';
+  @state() emailAddress = '';
+  @state() emailAuthCode = '';
   @state() botName = '';
   @state() botAvatar = 'F';
   @state() showFeishuGuide = false;
 
   private client: GatewayClient;
+  private currentStreamAbortController: AbortController | null = null;
 
   constructor() {
     super();
@@ -1343,10 +1348,25 @@ export class CKSBotApp extends LitElement {
   private async sendChatMessage() {
     if (!this.chatInput.trim() || this.chatLoading || this.chatStreaming) return;
 
+    // 如果是第一条消息且使用默认 sessionId，先创建新对话
+    if (this.currentSessionId === 'web-chat') {
+      try {
+        const res = await this.client.request('chat.new');
+        if (res?.sessionId) {
+          this.currentSessionId = res.sessionId;
+        }
+      } catch (error) {
+        console.error('Failed to create new conversation:', error);
+      }
+    }
+
     const userMessage = this.chatInput.trim();
     this.chatInput = '';
     this.chatMessages = [...this.chatMessages, { role: 'user', content: userMessage }];
     this.chatStreaming = true;
+
+    // Create abort controller for this request
+    this.currentStreamAbortController = new AbortController();
 
     // Scroll to bottom after adding user message
     this.scrollChatToBottom();
@@ -1361,6 +1381,8 @@ export class CKSBotApp extends LitElement {
       const response = await this.client.requestStream('agent.run', {
         sessionId: this.currentSessionId,
         message: userMessage,
+        userId: 'web-user',  // Web 用户标识
+        chatId: this.currentSessionId,  // 使用 sessionId 作为 chatId
       }, (event) => {
         // Handle streaming events
         if (event.type === 'text_delta') {
@@ -1399,11 +1421,26 @@ export class CKSBotApp extends LitElement {
       // 刷新对话列表（更新预览和时间）
       this.refreshConversationList();
     } catch (error) {
-      // Update the empty message with error
-      this.chatMessages = this.chatMessages.map((msg, idx) =>
-        idx === assistantMsgIndex ? { ...msg, content: '抱歉，处理请求时出错。' } : msg
-      );
+      // Check if it was aborted
+      if (error instanceof Error && error.name === 'AbortError') {
+        this.chatMessages = this.chatMessages.map((msg, idx) =>
+          idx === assistantMsgIndex ? { ...msg, content: '**[已打断]**' } : msg
+        );
+      } else {
+        // Update the empty message with error
+        this.chatMessages = this.chatMessages.map((msg, idx) =>
+          idx === assistantMsgIndex ? { ...msg, content: '抱歉，处理请求时出错。' } : msg
+        );
+      }
     } finally {
+      this.chatStreaming = false;
+      this.currentStreamAbortController = null;
+    }
+  }
+
+  private interruptChat() {
+    if (this.currentStreamAbortController) {
+      this.currentStreamAbortController.abort();
       this.chatStreaming = false;
     }
   }
@@ -1700,7 +1737,8 @@ export class CKSBotApp extends LitElement {
         break;
 
       case 'thinking':
-        // Agent 正在思考
+        // Agent 正在思考 - 停止当前播放的音频
+        this.stopAllAudio();
         this.realtimeStatus = 'connected';
         this.realtimeTranscript = '🤔 思考中...';
         break;
@@ -1754,6 +1792,26 @@ export class CKSBotApp extends LitElement {
   }
 
   /**
+   * Stop all audio playback (for interruption)
+   */
+  private stopAllAudio() {
+    // Stop current playing audio
+    if (this.currentAudioSource) {
+      try {
+        this.currentAudioSource.stop();
+      } catch (e) {
+        // Already stopped
+      }
+      this.currentAudioSource = null;
+    }
+
+    // Clear audio queue
+    this.realtimeAudioQueue = [];
+    this.isPlayingRealtimeAudio = false;
+    this.isPlayingAudio = false;
+  }
+
+  /**
    * Play realtime audio from PCM base64 (Gemini outputs 24kHz PCM)
    */
   private realtimeAudioQueue: string[] = [];
@@ -1801,8 +1859,15 @@ export class CKSBotApp extends LitElement {
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(audioContext.destination);
+
+      // Save reference to current playing audio
+      this.currentAudioSource = source;
+      this.isPlayingAudio = true;
+
       source.onended = () => {
         audioContext.close();
+        this.currentAudioSource = null;
+        this.isPlayingAudio = false;
         this.processRealtimeAudioQueue();
       };
       source.start();
@@ -1834,7 +1899,7 @@ export class CKSBotApp extends LitElement {
 
   // Onboarding methods
   private onboardingNext() {
-    const steps: OnboardingStep[] = ['welcome', 'model', 'feishu', 'profile', 'complete'];
+    const steps: OnboardingStep[] = ['welcome', 'model', 'feishu', 'email', 'profile', 'complete'];
     const currentIndex = steps.indexOf(this.onboardingStep);
     if (currentIndex < steps.length - 1) {
       this.onboardingStep = steps[currentIndex + 1];
@@ -1842,7 +1907,7 @@ export class CKSBotApp extends LitElement {
   }
 
   private onboardingBack() {
-    const steps: OnboardingStep[] = ['welcome', 'model', 'feishu', 'profile', 'complete'];
+    const steps: OnboardingStep[] = ['welcome', 'model', 'feishu', 'email', 'profile', 'complete'];
     const currentIndex = steps.indexOf(this.onboardingStep);
     if (currentIndex > 0) {
       this.onboardingStep = steps[currentIndex - 1];
@@ -1870,6 +1935,27 @@ export class CKSBotApp extends LitElement {
     // Navigate to home
     this.activeTab = 'dashboard';
     window.history.pushState({}, '', '/');
+  }
+
+  private async saveEmailConfig(email: string, authCode: string) {
+    this.emailAddress = email;
+    this.emailAuthCode = authCode;
+
+    // Save to backend
+    try {
+      await this.client.request('config.update', {
+        services: {
+          email: {
+            email: email,
+            authCode: authCode,
+          },
+        },
+      });
+      alert('邮箱配置已保存！');
+    } catch (error) {
+      console.error('Failed to save email config:', error);
+      alert('保存邮箱配置失败，请重试。');
+    }
   }
 
   private async onboardingComplete() {
@@ -1907,6 +1993,12 @@ export class CKSBotApp extends LitElement {
             mode: this.feishuMode,
           } : undefined,
         },
+        services: this.emailAddress && this.emailAuthCode ? {
+          email: {
+            email: this.emailAddress,
+            authCode: this.emailAuthCode,
+          },
+        } : undefined,
       });
       console.log('Config synced to backend');
     } catch (error) {
@@ -2030,6 +2122,7 @@ export class CKSBotApp extends LitElement {
           currentSessionId: this.currentSessionId,
           onInputChange: (value: string) => { this.chatInput = value; },
           onSend: () => this.sendChatMessage(),
+          onInterrupt: () => this.interruptChat(),
           onVoiceToggle: () => this.toggleVoiceRecording(),
           onSpeakMessage: (text: string) => this.speakMessage(text),
           onRealtimeVoiceToggle: () => this.toggleRealtimeVoice(),
@@ -2055,6 +2148,9 @@ export class CKSBotApp extends LitElement {
       case 'settings':
         return renderSettings({
           onRestartOnboarding: () => this.restartOnboarding(),
+          emailAddress: this.emailAddress,
+          emailAuthCode: this.emailAuthCode,
+          onEmailChange: (email: string, authCode: string) => this.saveEmailConfig(email, authCode),
         });
       default:
         return html`<div class="empty-state">页面不存在</div>`;
@@ -2072,6 +2168,8 @@ export class CKSBotApp extends LitElement {
         feishuAppId: this.feishuAppId,
         feishuAppSecret: this.feishuAppSecret,
         feishuMode: this.feishuMode,
+        emailAddress: this.emailAddress,
+        emailAuthCode: this.emailAuthCode,
         botName: this.botName,
         botAvatar: this.botAvatar,
         onModelProviderChange: (v) => { this.modelProvider = v; },
@@ -2083,6 +2181,8 @@ export class CKSBotApp extends LitElement {
         onFeishuAppIdChange: (v) => { this.feishuAppId = v; },
         onFeishuAppSecretChange: (v) => { this.feishuAppSecret = v; },
         onFeishuModeChange: (v) => { this.feishuMode = v; },
+        onEmailAddressChange: (v) => { this.emailAddress = v; },
+        onEmailAuthCodeChange: (v) => { this.emailAuthCode = v; },
         onBotNameChange: (v) => { this.botName = v; },
         onBotAvatarChange: (v) => { this.botAvatar = v; },
         onAvatarUpload: (file: File) => this.handleAvatarUpload(file),

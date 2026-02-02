@@ -47,7 +47,7 @@ export interface VoiceAgentConfig {
   asrModel?: string;  // ASR 模型: qwen3-asr-flash-realtime
   ttsModel?: string;  // TTS 模型: qwen3-tts-vd-realtime
   voice?: string;  // TTS 音色
-  speechRate?: number;  // 语速: 0.5-2.0, 默认 1.2
+  speechRate?: number;  // 语速: 0.5-2.0, 默认 1.5
   systemPrompt?: string;
 }
 
@@ -68,18 +68,20 @@ export class VoiceAgentClient {
   // TTS WebSocket (Qwen TTS Realtime)
   private ttsWs: WebSocket | null = null;
   private ttsReady = false;
+  private currentTTSProcessingId = 0;  // 当前 TTS 对应的处理 ID
 
   // 状态
   private sessionId: string;
   private currentTranscript = "";
   private isProcessing = false;
+  private currentProcessingId = 0;  // 用于跟踪当前处理的请求
 
   constructor(config: VoiceAgentConfig, appConfig: Config, sessionId: string) {
     this.config = {
       asrModel: "qwen3-asr-flash-realtime",
       ttsModel: "qwen3-tts-flash-realtime",  // 正确的模型名
       voice: "Cherry",  // 使用与之前相同的音色
-      speechRate: 1.2,  // 默认语速稍快
+      speechRate: 1.5,  // 默认语速快
       ...config,
     };
     this.appConfig = appConfig;
@@ -216,8 +218,13 @@ export class VoiceAgentClient {
             logger.info("ASR transcript completed", { transcript: message.transcript });
             this.emit({ type: "user_transcript", text: message.transcript, isFinal: true });
 
-            // 用户说完一句话，发送给 Agent
-            if (!this.isProcessing && message.transcript.trim()) {
+            // 用户说完一句话，立即打断当前 TTS 并处理新输入
+            if (message.transcript.trim()) {
+              // 如果正在处理，先中断 TTS
+              if (this.isProcessing) {
+                logger.info("Interrupting current TTS for new input");
+                this.closeTTS();
+              }
               this.processUserInput(message.transcript);
             }
           }
@@ -294,7 +301,7 @@ export class VoiceAgentClient {
         // 音色
         voice: this.config.voice,
         // 语速: 0.5-2.0, 默认 1.2 稍快
-        speech_rate: this.config.speechRate ?? 1.2,
+        speech_rate: this.config.speechRate ?? 1.5,
         // 输出音频格式
         response_format: "pcm",
         sample_rate: 24000,
@@ -335,6 +342,15 @@ export class VoiceAgentClient {
 
         // TTS 音频数据
         case "response.audio.delta":
+          // 检查是否已被新请求打断
+          if (this.currentTTSProcessingId !== this.currentProcessingId) {
+            logger.info("TTS audio interrupted, closing connection", {
+              ttsProcessingId: this.currentTTSProcessingId,
+              currentProcessingId: this.currentProcessingId
+            });
+            this.closeTTS();
+            return;
+          }
           if (message.delta) {
             this.emit({ type: "audio_data", data: message.delta });
           }
@@ -387,16 +403,58 @@ export class VoiceAgentClient {
   }
 
   /**
+   * 清理 Markdown 格式，使其适合 TTS
+   */
+  private cleanMarkdownForTTS(text: string): string {
+    let cleaned = text;
+
+    // 移除 Markdown 标题标记 (### -> "")
+    cleaned = cleaned.replace(/^#{1,6}\s+/gm, "");
+
+    // 移除列表标记 (- -> "")
+    cleaned = cleaned.replace(/^[\s]*[-*+]\s+/gm, "");
+
+    // 移除数字列表标记 (1. -> "第一，")
+    cleaned = cleaned.replace(/^[\s]*(\d+)\.\s+/gm, (match, num) => {
+      const numbers = ["", "第一", "第二", "第三", "第四", "第五", "第六", "第七", "第八", "第九", "第十"];
+      const n = parseInt(num);
+      return n <= 10 ? `${numbers[n]}，` : `第${num}点，`;
+    });
+
+    // 移除粗体标记 (**text** -> text)
+    cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, "$1");
+
+    // 移除斜体标记 (*text* -> text)
+    cleaned = cleaned.replace(/\*([^*]+)\*/g, "$1");
+
+    // 移除代码块标记 (```...``` -> ...)
+    cleaned = cleaned.replace(/```[\s\S]*?```/g, "");
+
+    // 移除行内代码标记 (`code` -> code)
+    cleaned = cleaned.replace(/`([^`]+)`/g, "$1");
+
+    // 移除链接，保留文本 ([text](url) -> text)
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+
+    // 移除多余的空行（保留单个换行）
+    cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+
+    return cleaned.trim();
+  }
+
+  /**
    * 处理用户输入 - 调用 Agent
    */
   private async processUserInput(text: string) {
     if (!text.trim()) return;
 
+    // 生成新的处理 ID 并设置处理标志
+    const processingId = ++this.currentProcessingId;
     this.isProcessing = true;
     this.emit({ type: "thinking" });
 
     try {
-      logger.info("Processing user input", { text });
+      logger.info("Processing user input", { text, processingId });
 
       // 调用 Agent
       const tools = await createDefaultTools(this.appConfig);
@@ -410,13 +468,22 @@ export class VoiceAgentClient {
         config: this.appConfig,
       });
 
-      logger.info("Agent response", { content: response.content.substring(0, 100) });
+      // 检查是否被新请求打断
+      if (processingId !== this.currentProcessingId) {
+        logger.info("Request interrupted, skipping TTS", { processingId, currentId: this.currentProcessingId });
+        return;
+      }
+
+      logger.info("Agent response", { content: response.content.substring(0, 100), processingId });
+
+      // 清理 Markdown 格式，使其适合 TTS
+      const cleanedContent = this.cleanMarkdownForTTS(response.content);
 
       // 发送 Agent 回复文本
-      this.emit({ type: "agent_text", text: response.content, isFinal: true });
+      this.emit({ type: "agent_text", text: cleanedContent, isFinal: true });
 
       // 使用 TTS 合成语音
-      await this.synthesizeSpeech(response.content);
+      await this.synthesizeSpeech(cleanedContent, processingId);
 
     } catch (error) {
       logger.error("Failed to process user input", { error });
@@ -429,10 +496,23 @@ export class VoiceAgentClient {
   /**
    * TTS 合成语音
    */
-  private async synthesizeSpeech(text: string) {
+  private async synthesizeSpeech(text: string, processingId: number) {
     try {
+      // 检查是否已被新请求打断
+      if (processingId !== this.currentProcessingId) {
+        logger.info("TTS synthesis skipped (interrupted)", { processingId, currentId: this.currentProcessingId });
+        return;
+      }
+
       // 每次合成新建 TTS 连接
       await this.connectTTS();
+
+      // 再次检查是否被打断
+      if (processingId !== this.currentProcessingId) {
+        logger.info("TTS synthesis interrupted during connection", { processingId, currentId: this.currentProcessingId });
+        this.closeTTS();
+        return;
+      }
 
       if (!this.ttsWs || this.ttsWs.readyState !== WebSocket.OPEN) {
         logger.warn("TTS WebSocket not connected");
@@ -443,19 +523,22 @@ export class VoiceAgentClient {
 
       this.emit({ type: "speaking" });
 
+      // 记录当前 TTS 的处理 ID
+      this.currentTTSProcessingId = processingId;
+
       // 1. 使用 input_text_buffer.append 添加文本到缓冲区
       const appendMessage = {
         type: "input_text_buffer.append",
         text: text,
       };
-      logger.info("Sending TTS text (append)", { textLength: text.length });
+      logger.info("Sending TTS text (append)", { textLength: text.length, processingId });
       this.ttsWs.send(JSON.stringify(appendMessage));
 
       // 2. 使用 input_text_buffer.commit 提交文本触发合成
       const commitMessage = {
         type: "input_text_buffer.commit",
       };
-      logger.info("Sending TTS commit");
+      logger.info("Sending TTS commit", { processingId });
       this.ttsWs.send(JSON.stringify(commitMessage));
 
     } catch (error) {
@@ -474,10 +557,8 @@ export class VoiceAgentClient {
       return false;
     }
 
-    if (this.isProcessing) {
-      // Agent 正在处理，不接收新的音频
-      return false;
-    }
+    // 允许接收新音频，即使正在处理（用于打断）
+    // 当转写完成时会自动打断当前 TTS
 
     // 发送音频数据
     const audioMessage = {
@@ -541,7 +622,7 @@ export function createVoiceAgentClient(
     {
       apiKey,
       voice: options?.voice || config.models?.qwen?.voice || "Cherry",
-      speechRate: config.models?.qwen?.speechRate ?? 1.2,  // 默认 1.2 倍速
+      speechRate: config.models?.qwen?.speechRate ?? 1.5,  // 默认 1.5 倍速
       systemPrompt: options?.systemPrompt,
     },
     config,

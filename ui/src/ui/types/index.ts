@@ -34,8 +34,10 @@ export interface ScheduledTask {
   executeAt?: string;
   repeat?: 'daily' | 'weekly' | 'monthly' | 'once';
   action: {
-    type: 'send_message' | 'run_agent';
+    type: 'send_message' | 'run_agent' | 'send_wechat' | 'send_feishu';
     content: string;
+    contact?: string;
+    targetApp?: 'wechat' | 'feishu';
   };
   enabled: boolean;
   lastRun?: string;

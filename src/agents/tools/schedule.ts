@@ -44,11 +44,19 @@ function createScheduleMessageTool(): AgentTool {
     name: "schedule_message",
     description: `创建定时发送消息任务。
 可以设置一次性发送或定期发送（每天、每周、每月）。
+支持发送到微信、飞书等不同渠道。
+
+参数：
+- message: 要发送的消息内容（必需）
+- executeAt: 执行时间，ISO格式（可选，默认1分钟后）
+- repeat: 重复类型 once/daily/weekly/monthly（可选，默认once）
+- targetApp: 目标应用 wechat/feishu（可选）
+- contact: 联系人名称，用于微信/飞书发送（当指定targetApp时必需）
 
 示例：
 - 明天早上9点发送问候: executeAt="2026-02-01T09:00:00", repeat="once"
 - 每天早上9点发送: repeat="daily"
-- 每周一发送周报提醒: repeat="weekly"`,
+- 今天18点给微信好友发消息: targetApp="wechat", contact="张三", executeAt="2026-02-01T18:00:00"`,
     inputSchema: {
       type: "object",
       properties: {
@@ -65,6 +73,15 @@ function createScheduleMessageTool(): AgentTool {
           enum: ["once", "daily", "weekly", "monthly"],
           description: "重复类型：once=一次性, daily=每天, weekly=每周, monthly=每月",
         },
+        targetApp: {
+          type: "string",
+          enum: ["wechat", "feishu"],
+          description: "目标应用：wechat=微信, feishu=飞书",
+        },
+        contact: {
+          type: "string",
+          description: "联系人名称（用于微信/飞书发送时指定接收人）",
+        },
       },
       required: ["message"],
     },
@@ -72,6 +89,8 @@ function createScheduleMessageTool(): AgentTool {
       const message = input["message"] as string;
       const executeAt = input["executeAt"] as string | undefined;
       const repeat = (input["repeat"] as "once" | "daily" | "weekly" | "monthly") ?? "once";
+      const targetApp = input["targetApp"] as "wechat" | "feishu" | undefined;
+      const contact = input["contact"] as string | undefined;
 
       if (!context.userId || !context.chatId) {
         return {
@@ -80,28 +99,59 @@ function createScheduleMessageTool(): AgentTool {
         };
       }
 
+      // 如果指定了目标应用但没有联系人，返回错误
+      if (targetApp && !contact) {
+        return {
+          success: false,
+          error: `指定了目标应用 ${targetApp}，但未指定联系人`,
+        };
+      }
+
       try {
+        // 确定 action 类型
+        let actionType: "send_message" | "send_wechat" | "send_feishu" = "send_message";
+        if (targetApp === "wechat") {
+          actionType = "send_wechat";
+        } else if (targetApp === "feishu") {
+          actionType = "send_feishu";
+        }
+
         const task = createScheduledTask({
           userId: context.userId,
           chatId: context.chatId,
           executeAt: executeAt ?? new Date(Date.now() + 60000).toISOString(), // 默认1分钟后
           repeat,
           action: {
-            type: "send_message",
+            type: actionType,
             content: message,
+            contact: contact,
+            targetApp: targetApp,
           },
           enabled: true,
         });
 
-        logger.info("Created scheduled message", { taskId: task.id, userId: context.userId });
+        logger.info("Created scheduled message", {
+          taskId: task.id,
+          userId: context.userId,
+          targetApp,
+          contact,
+        });
+
+        // 构建友好的返回信息
+        let resultMessage = `已创建定时任务`;
+        if (targetApp && contact) {
+          resultMessage = `已创建定时任务：将在指定时间通过${targetApp === 'wechat' ? '微信' : '飞书'}发送消息给 ${contact}`;
+        }
 
         return {
           success: true,
           result: {
             taskId: task.id,
-            message: `已创建定时任务`,
+            message: resultMessage,
             executeAt: task.executeAt,
             repeat: task.repeat,
+            targetApp: targetApp,
+            contact: contact,
             content: message.substring(0, 50) + (message.length > 50 ? "..." : ""),
           },
         };

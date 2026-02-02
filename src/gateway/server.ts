@@ -576,6 +576,12 @@ async function handleRPCRequest(
             mode?: 'websocket' | 'webhook';
           };
         };
+        services?: {
+          email?: {
+            email?: string;
+            authCode?: string;
+          };
+        };
       };
 
       try {
@@ -600,7 +606,7 @@ async function handleRPCRequest(
           } else if (provider === 'openai' && apiKey) {
             updatedConfig.models.openai = { apiKey, baseUrl, model: configParams.model.modelName };
           } else if (provider === 'qwen' && apiKey) {
-            updatedConfig.models.qwen = { apiKey, speechRate: 1.2 };
+            updatedConfig.models.qwen = { apiKey, speechRate: 1.5 };
           }
         }
 
@@ -625,6 +631,19 @@ async function handleRPCRequest(
               dmPolicy: 'pairing',
               requireMention: true,
             };
+          }
+        }
+
+        // Update email config
+        if (configParams.services?.email) {
+          const emailParams = configParams.services.email;
+          if (emailParams.email && emailParams.authCode) {
+            updatedConfig.services = updatedConfig.services || {};
+            (updatedConfig.services as Record<string, unknown>)["email"] = {
+              email: emailParams.email,
+              authCode: emailParams.authCode,
+            };
+            logger.info("Email config updated", { email: emailParams.email });
           }
         }
 

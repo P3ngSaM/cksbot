@@ -32,6 +32,122 @@ export function createMacOSTools(): AgentTool[] {
 }
 
 /**
+ * Clean Markdown formatting for messaging
+ */
+function cleanMarkdownForMessage(text: string): string {
+  let cleaned = text;
+
+  // Remove bold markers
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, "$1");
+
+  // Remove italic markers
+  cleaned = cleaned.replace(/\*([^*]+)\*/g, "$1");
+
+  // Remove code blocks
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, "");
+
+  // Remove inline code
+  cleaned = cleaned.replace(/`([^`]+)`/g, "$1");
+
+  // Remove links, keep text
+  cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+
+  // Convert list markers to bullets
+  cleaned = cleaned.replace(/^[\s]*[-*+]\s+/gm, "• ");
+
+  // Convert numbered lists
+  cleaned = cleaned.replace(/^[\s]*(\d+)\.\s+/gm, "$1. ");
+
+  // Remove excess blank lines
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+
+  return cleaned.trim();
+}
+
+/**
+ * Convert Chinese characters to pinyin (simplified mapping)
+ */
+function toPinyin(text: string): string {
+  // 常见汉字拼音映射表
+  const pinyinMap: Record<string, string> = {
+    '刘': 'liu', '婆': 'po', '郑': 'zheng', '宁': 'ning', '欣': 'xin', '馨': 'xin',
+    '张': 'zhang', '王': 'wang', '李': 'li', '赵': 'zhao', '陈': 'chen',
+    '杨': 'yang', '黄': 'huang', '周': 'zhou', '吴': 'wu', '徐': 'xu',
+    '孙': 'sun', '马': 'ma', '朱': 'zhu', '胡': 'hu', '林': 'lin',
+    '郭': 'guo', '何': 'he', '高': 'gao', '罗': 'luo',
+    '小': 'xiao', '大': 'da', '老': 'lao', '阿': 'a',
+    '爸': 'ba', '妈': 'ma', '爷': 'ye', '奶': 'nai', '哥': 'ge', '姐': 'jie',
+    '弟': 'di', '妹': 'mei', '叔': 'shu', '姑': 'gu', '舅': 'jiu',
+    '明': 'ming', '华': 'hua', '文': 'wen', '军': 'jun', '伟': 'wei',
+    '强': 'qiang', '磊': 'lei', '洋': 'yang', '勇': 'yong', '杰': 'jie',
+    '娟': 'juan', '芳': 'fang', '敏': 'min', '静': 'jing', '丽': 'li',
+    '秀': 'xiu', '英': 'ying', '梅': 'mei', '红': 'hong', '玲': 'ling',
+    '天': 'tian', '云': 'yun', '龙': 'long', '凤': 'feng', '飞': 'fei',
+    '海': 'hai', '山': 'shan', '江': 'jiang', '波': 'bo', '涛': 'tao',
+    '灵': 'ling', '新': 'xin',
+  };
+
+  let pinyin = '';
+  for (const char of text) {
+    if (pinyinMap[char]) {
+      pinyin += pinyinMap[char];
+    } else if (/[\u4e00-\u9fa5]/.test(char)) {
+      // 如果是汉字但不在映射表中，跳过（无法转换）
+      return '';  // 返回空表示无法完全转换
+    } else {
+      // 非汉字字符保留
+      pinyin += char;
+    }
+  }
+  return pinyin;
+}
+
+/**
+ * Search for a contact in WeChat/Lark
+ * Returns the search term that was used
+ */
+async function searchContact(appName: string, contact: string): Promise<string> {
+  // Step 1: 多次按 Escape 确保关闭所有弹窗和返回主界面
+  logger.debug("Pressing Escape multiple times to reset state");
+  for (let i = 0; i < 3; i++) {
+    execSync(`osascript -e 'tell application "System Events" to key code 53'`, { timeout: 5000 });
+    await sleep(200);
+  }
+  await sleep(500);
+
+  // Step 2: 打开搜索
+  logger.debug("Opening search");
+  if (appName === "WeChat") {
+    execSync(`osascript -e 'tell application "System Events" to keystroke "f" using {command down}'`, { timeout: 5000 });
+  } else {
+    execSync(`osascript -e 'tell application "System Events" to keystroke "k" using {command down}'`, { timeout: 5000 });
+  }
+  await sleep(1000);
+
+  // Step 3: 输入搜索词（使用中文原名，更精确）
+  const searchTerm = contact;
+
+  logger.debug("Typing search term", { searchTerm });
+  // 先全选清空
+  execSync(`osascript -e 'tell application "System Events" to keystroke "a" using {command down}'`, { timeout: 5000 });
+  await sleep(100);
+
+  // 复制搜索词到剪贴板并粘贴
+  const escapedTerm = searchTerm.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  execSync(`echo "${escapedTerm}" | pbcopy`, { timeout: 5000 });
+  await sleep(100);
+  execSync(`osascript -e 'tell application "System Events" to keystroke "v" using {command down}'`, { timeout: 5000 });
+  await sleep(2000);  // 等待搜索结果加载
+
+  // Step 4: 按回车选择第一个结果
+  logger.debug("Pressing Enter to select first result");
+  execSync(`osascript -e 'tell application "System Events" to key code 36'`, { timeout: 5000 });  // Enter
+  await sleep(1500);  // 等待聊天窗口打开
+
+  return searchTerm;
+}
+
+/**
  * Send message via WeChat or Lark - 一键发送消息
  * 这个工具封装了整个发送流程，不需要用户分步操作
  */
@@ -67,7 +183,10 @@ function createSendMessageTool(): AgentTool {
     execute: async (input): Promise<ToolExecutionResult> => {
       const appType = (input["app"] as string).toLowerCase();
       const contact = input["contact"] as string;
-      const message = input["message"] as string;
+      let message = input["message"] as string;
+
+      // 清理 Markdown 格式
+      message = cleanMarkdownForMessage(message);
 
       // 确定应用名称
       const appName = appType === "wechat" ? "WeChat" : "Lark";
@@ -78,49 +197,106 @@ function createSendMessageTool(): AgentTool {
         // Step 1: 打开应用
         logger.debug("Step 1: Opening app");
         execSync(`open -a "${appName}"`, { timeout: 10000 });
-        await sleep(1000);  // 等待应用打开
+        await sleep(1500);  // 等待应用打开
 
-        // Step 2: 激活应用并打开搜索 (Cmd+K)
-        logger.debug("Step 2: Opening search");
-        const activateScript = `
-          tell application "${appName}" to activate
-          delay 0.5
-          tell application "System Events"
-            keystroke "k" using {command down}
-          end tell
-        `;
-        execSync(`osascript -e '${activateScript}'`, { timeout: 5000 });
-        await sleep(800);  // 等待搜索框打开
+        // Step 2: 激活应用
+        logger.debug("Step 2: Activating app");
+        execSync(`osascript -e 'tell application "${appName}" to activate'`, { timeout: 5000 });
+        await sleep(800);
 
-        // Step 3: 输入联系人名字
-        logger.debug("Step 3: Typing contact name", { contact });
-        execSync(`echo "${contact.replace(/"/g, '\\"')}" | pbcopy`, { timeout: 5000 });
+        // Step 3: 搜索联系人
+        logger.debug("Step 3: Searching for contact", { contact });
+        const usedSearchTerm = await searchContact(appName, contact);
+
+        // Step 4: 等待聊天窗口就绪
+        logger.info("Step 4: Waiting for chat window to be ready");
+        await sleep(1500);
+
+        // Step 4.5: 使用 AppleScript 确保微信窗口在最前面并激活
+        logger.info("Step 4.5: Ensuring WeChat window is frontmost");
+        execSync(`osascript -e 'tell application "${appName}" to activate'`, { timeout: 5000 });
+        execSync(`osascript -e 'tell application "System Events" to tell process "${appName}" to set frontmost to true'`, { timeout: 5000 });
+        await sleep(500);
+
+        // Step 4.6: 点击窗口确保激活（使用坐标点击窗口中心偏下位置，通常是输入框区域）
+        logger.info("Step 4.6: Clicking input area");
+        try {
+          // 获取窗口位置和大小
+          const windowInfo = execSync(
+            `osascript -e 'tell application "System Events" to tell process "${appName}" to get position of window 1'`,
+            { encoding: 'utf-8', timeout: 5000 }
+          ).trim();
+          const windowSize = execSync(
+            `osascript -e 'tell application "System Events" to tell process "${appName}" to get size of window 1'`,
+            { encoding: 'utf-8', timeout: 5000 }
+          ).trim();
+
+          logger.debug("Window info", { position: windowInfo, size: windowSize });
+
+          // 解析坐标
+          const posArr = windowInfo.split(', ').map(s => parseFloat(s));
+          const sizeArr = windowSize.split(', ').map(s => parseFloat(s));
+
+          const x = posArr[0];
+          const y = posArr[1];
+          const width = sizeArr[0];
+          const height = sizeArr[1];
+
+          if (typeof x === 'number' && typeof y === 'number' && typeof width === 'number' && typeof height === 'number' &&
+              !isNaN(x) && !isNaN(y) && !isNaN(width) && !isNaN(height)) {
+            // 点击窗口底部偏上位置（输入框通常在这里）
+            const clickX = x + width / 2;
+            const clickY = y + height - 100;
+
+            logger.info("Clicking input field", { x: clickX, y: clickY });
+            execSync(`osascript -e 'tell application "System Events" to click at {${clickX}, ${clickY}}'`, { timeout: 5000 });
+            await sleep(500);
+          }
+        } catch (error) {
+          logger.warn("Failed to click input area, continuing anyway", { error });
+        }
+
+        // Step 5: 输入消息 - 使用 AppleScript keystroke
+        logger.info("Step 5: Typing message character by character", { messageLength: message.length });
+
+        // 先清空输入框
+        execSync(`osascript -e 'tell application "System Events" to keystroke "a" using {command down}'`, { timeout: 5000 });
         await sleep(100);
-        execSync(`osascript -e 'tell application "System Events" to keystroke "v" using {command down}'`, { timeout: 5000 });
-        await sleep(1000);  // 等待搜索结果
+        execSync(`osascript -e 'tell application "System Events" to key code 51'`, { timeout: 5000 }); // Delete
+        await sleep(200);
 
-        // Step 4: 按回车选中联系人
-        logger.debug("Step 4: Selecting contact");
-        execSync(`osascript -e 'tell application "System Events" to key code 36'`, { timeout: 5000 });  // key code 36 = return
-        await sleep(800);  // 等待聊天窗口打开
+        // 使用 AppleScript 的 keystroke 直接输入中文
+        const escapedForAppleScript = message.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/'/g, "\\'");
+        try {
+          logger.info("Typing with AppleScript keystroke");
+          execSync(
+            `osascript -e 'tell application "System Events" to keystroke "${escapedForAppleScript}"'`,
+            { timeout: 10000 }
+          );
+          await sleep(500);
+        } catch (error) {
+          logger.warn("AppleScript keystroke failed, falling back to clipboard", { error });
 
-        // Step 5: 输入消息
-        logger.debug("Step 5: Typing message", { message });
-        execSync(`echo "${message.replace(/"/g, '\\"')}" | pbcopy`, { timeout: 5000 });
-        await sleep(100);
-        execSync(`osascript -e 'tell application "System Events" to keystroke "v" using {command down}'`, { timeout: 5000 });
-        await sleep(300);
+          // 备用方案：使用剪贴板
+          const escapedMessage = message.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          execSync(`printf '%s' "${escapedMessage}" | pbcopy`, { timeout: 5000 });
+          await sleep(200);
+          execSync(`osascript -e 'tell application "System Events" to keystroke "v" using {command down}'`, { timeout: 5000 });
+          await sleep(500);
+        }
 
         // Step 6: 按回车发送
-        logger.debug("Step 6: Sending message");
+        logger.info("Step 6: Sending message (pressing Enter)");
         execSync(`osascript -e 'tell application "System Events" to key code 36'`, { timeout: 5000 });
+        await sleep(500);
 
-        logger.info("Message sent successfully");
+        logger.info("Message sent successfully", { usedSearchTerm });
 
         return {
           success: true,
           result: {
-            message: `已通过${appName === "WeChat" ? "微信" : "飞书"}给${contact}发送: ${message}`,
+            message: `已通过${appName === "WeChat" ? "微信" : "飞书"}给"${contact}"发送消息`,
+            warning: `请检查确认消息是否发送到正确的联系人。`,
           },
         };
       } catch (error: any) {

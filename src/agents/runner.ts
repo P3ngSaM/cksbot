@@ -16,6 +16,7 @@ import {
 } from "./providers/anthropic.js";
 import { addMessage, getMessages } from "./context.js";
 import { executeTool, toToolDefinitions, type AgentTool, type ToolContext } from "./tools/common.js";
+import { getUserProfile } from "./memory.js";
 import { createLogger } from "../utils/logger.js";
 
 const logger = createLogger("runner");
@@ -74,6 +75,16 @@ export async function runAgent(params: RunAgentParams): Promise<AgentResponse> {
   const { sessionId, tools, systemPrompt, userMessage, config, userId, chatId, stream, onStream } = params;
 
   logger.info("Running agent", { sessionId, messageLength: userMessage.length, stream: !!stream, toolCount: tools.length });
+
+  // 自动记录用户（如果有 userId）
+  if (userId) {
+    try {
+      getUserProfile(userId);  // 这会自动创建用户档案并更新 lastSeen
+      logger.debug("User profile updated", { userId });
+    } catch (error) {
+      logger.warn("Failed to update user profile", { userId, error });
+    }
+  }
 
   // Get Anthropic client
   const client = getAnthropicClient(config);

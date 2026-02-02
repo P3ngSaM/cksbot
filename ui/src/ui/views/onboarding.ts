@@ -22,7 +22,7 @@ const icons = {
   bookOpen: html`<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
 };
 
-export type OnboardingStep = 'welcome' | 'model' | 'feishu' | 'profile' | 'complete';
+export type OnboardingStep = 'welcome' | 'model' | 'feishu' | 'email' | 'profile' | 'complete';
 
 export interface OnboardingProps {
   step: OnboardingStep;
@@ -36,6 +36,9 @@ export interface OnboardingProps {
   feishuAppId: string;
   feishuAppSecret: string;
   feishuMode: 'websocket' | 'webhook';
+  // Email config
+  emailAddress: string;
+  emailAuthCode: string;
   // Profile
   botName: string;
   botAvatar: string;
@@ -50,6 +53,8 @@ export interface OnboardingProps {
   onFeishuAppIdChange: (value: string) => void;
   onFeishuAppSecretChange: (value: string) => void;
   onFeishuModeChange: (value: 'websocket' | 'webhook') => void;
+  onEmailAddressChange: (value: string) => void;
+  onEmailAuthCodeChange: (value: string) => void;
   onBotNameChange: (value: string) => void;
   onBotAvatarChange: (value: string) => void;
   onAvatarUpload: (file: File) => void;
@@ -62,7 +67,7 @@ export interface OnboardingProps {
 }
 
 export function renderOnboarding(props: OnboardingProps) {
-  const steps = ['welcome', 'model', 'feishu', 'profile', 'complete'];
+  const steps = ['welcome', 'model', 'feishu', 'email', 'profile', 'complete'];
   const currentIndex = steps.indexOf(props.step);
 
   return html`
@@ -866,6 +871,8 @@ function renderStep(props: OnboardingProps) {
       return renderModel(props);
     case 'feishu':
       return renderFeishu(props);
+    case 'email':
+      return renderEmail(props);
     case 'profile':
       return renderProfile(props);
     case 'complete':
@@ -1188,6 +1195,80 @@ function renderFeishuGuideModal(props: OnboardingProps) {
             知道了
           </button>
         </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderEmail(props: OnboardingProps) {
+  return html`
+    <div class="step-container">
+      <div class="step-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      </div>
+      <h2 class="step-title">邮箱配置</h2>
+      <p class="step-subtitle">配置邮箱以启用邮件发送功能（可选）</p>
+
+      <div class="form-group">
+        <label class="form-label" for="email-address">邮箱地址</label>
+        <input
+          id="email-address"
+          type="email"
+          class="form-input"
+          placeholder="example@qq.com"
+          .value=${props.emailAddress}
+          @input=${(e: Event) => props.onEmailAddressChange((e.target as HTMLInputElement).value)}
+        />
+        <div class="form-hint">
+          ${icons.info}
+          <span>支持 QQ、163、Gmail、Outlook 等主流邮箱</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email-auth-code">授权码</label>
+        <input
+          id="email-auth-code"
+          type="password"
+          class="form-input"
+          placeholder="邮箱授权码（不是登录密码）"
+          .value=${props.emailAuthCode}
+          @input=${(e: Event) => props.onEmailAuthCodeChange((e.target as HTMLInputElement).value)}
+        />
+        <div class="form-hint">
+          ${icons.info}
+          <span>在邮箱设置中开启 SMTP 服务后获取</span>
+        </div>
+      </div>
+
+      <div style="background: #FAFAFA; border-radius: 10px; padding: 16px; margin-top: 8px;">
+        <div style="font-size: 14px; font-weight: 600; color: #171717; margin-bottom: 12px;">如何获取授权码？</div>
+        <div style="font-size: 13px; color: #404040; line-height: 1.6;">
+          <div style="margin-bottom: 8px;">
+            <strong>QQ邮箱：</strong>设置 → 账户 → POP3/SMTP服务 → 开启并获取授权码
+            <a href="https://service.mail.qq.com/detail/0/75" target="_blank" style="color: #007AFF; margin-left: 4px;">查看教程</a>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <strong>163邮箱：</strong>设置 → POP3/SMTP/IMAP → 开启并获取授权码
+            <a href="https://help.mail.163.com/faqDetail.do?code=d7a5dc8471cd0c0e8b4b8f4f8e49998b374173cfe9171305fa1ce630d7f67ac2" target="_blank" style="color: #007AFF; margin-left: 4px;">查看教程</a>
+          </div>
+          <div>
+            <strong>Gmail：</strong>需要开启"应用专用密码"
+            <a href="https://support.google.com/accounts/answer/185833" target="_blank" style="color: #007AFF; margin-left: 4px;">查看教程</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn btn-secondary" @click=${props.onBack}>
+          ${icons.arrowLeft}
+          返回
+        </button>
+        <button class="btn btn-text" @click=${props.onSkip}>跳过</button>
+        <button class="btn btn-primary" @click=${props.onNext}>
+          下一步
+          ${icons.arrowRight}
+        </button>
       </div>
     </div>
   `;

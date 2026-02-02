@@ -80,8 +80,10 @@ export interface ScheduledTask {
   executeAt?: string;       // 一次性任务的执行时间
   repeat?: "daily" | "weekly" | "monthly" | "once";
   action: {
-    type: "send_message" | "run_agent";
+    type: "send_message" | "run_agent" | "send_wechat" | "send_feishu";
     content: string;       // 消息内容或 agent 指令
+    contact?: string;      // 联系人名称（用于微信/飞书）
+    targetApp?: "wechat" | "feishu";  // 目标应用（用于 send_message 类型）
   };
   enabled: boolean;
   lastRun?: string;

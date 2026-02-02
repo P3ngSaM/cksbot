@@ -6,6 +6,10 @@ import { html } from 'lit';
 
 interface SettingsProps {
   onRestartOnboarding?: () => void;
+  // 邮箱配置
+  emailAddress?: string;
+  emailAuthCode?: string;
+  onEmailChange?: (email: string, authCode: string) => void;
 }
 
 export function renderSettings(props: SettingsProps) {
@@ -41,6 +45,48 @@ export function renderSettings(props: SettingsProps) {
         <button class="btn btn-primary">💾 保存</button>
       </div>
 
+      <!-- 邮箱配置 -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">📧 邮箱配置</h3>
+        </div>
+        <div class="form-group">
+          <label class="form-label">邮箱地址</label>
+          <input
+            type="email"
+            class="input"
+            id="email-address"
+            placeholder="example@qq.com"
+            .value=${props.emailAddress || ''}
+          />
+          <div class="form-hint">发送邮件时使用的邮箱地址</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">授权码</label>
+          <input
+            type="password"
+            class="input"
+            id="email-auth-code"
+            placeholder="邮箱授权码（不是登录密码）"
+            .value=${props.emailAuthCode || ''}
+          />
+          <div class="form-hint">
+            在邮箱设置中生成的授权码。
+            <a href="https://service.mail.qq.com/detail/0/75" target="_blank" style="color: var(--accent);">QQ邮箱获取授权码</a> |
+            <a href="https://help.mail.163.com/faqDetail.do?code=d7a5dc8471cd0c0e8b4b8f4f8e49998b374173cfe9171305fa1ce630d7f67ac2" target="_blank" style="color: var(--accent);">163邮箱获取授权码</a>
+          </div>
+        </div>
+        <button class="btn btn-primary" @click=${() => {
+          const emailInput = document.getElementById('email-address') as HTMLInputElement;
+          const authCodeInput = document.getElementById('email-auth-code') as HTMLInputElement;
+          if (props.onEmailChange && emailInput && authCodeInput) {
+            props.onEmailChange(emailInput.value, authCodeInput.value);
+          }
+        }}>💾 保存邮箱配置</button>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top: var(--spacing-lg);">
       <!-- 飞书配置 -->
       <div class="card">
         <div class="card-header">
@@ -69,13 +115,12 @@ export function renderSettings(props: SettingsProps) {
         </div>
         <button class="btn btn-primary">💾 保存</button>
       </div>
-    </div>
 
-    <div class="card" style="margin-top: var(--spacing-lg);">
-      <div class="card-header">
-        <h3 class="card-title">🖥️ 网关配置</h3>
-      </div>
-      <div class="grid-2">
+      <!-- 网关配置 -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">🖥️ 网关配置</h3>
+        </div>
         <div class="form-group">
           <label class="form-label">端口</label>
           <input type="number" class="input" value="18789" />
@@ -84,8 +129,8 @@ export function renderSettings(props: SettingsProps) {
           <label class="form-label">主机</label>
           <input type="text" class="input" value="127.0.0.1" />
         </div>
+        <button class="btn btn-primary">💾 保存</button>
       </div>
-      <button class="btn btn-primary">💾 保存</button>
     </div>
 
     <div class="card" style="margin-top: var(--spacing-lg);">

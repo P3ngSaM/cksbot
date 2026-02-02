@@ -61,6 +61,12 @@ const BUILT_IN_SKILLS: Skill[] = [
   { id: "screenshot_and_describe", name: "截图并描述", description: "截图并 OCR 识别内容", category: "视觉", enabled: true, builtIn: true },
   { id: "analyze_screen", name: "分析屏幕", description: "截图并用 AI 分析屏幕内容", category: "视觉", enabled: true, builtIn: true },
 
+  // 网络搜索
+  { id: "web_search", name: "网络搜索", description: "搜索网络信息（使用 UAPI 或降级到百度/Bing）", category: "网络", enabled: true, builtIn: true },
+
+  // 邮箱
+  { id: "send_email", name: "发送邮件", description: "通过 SMTP 发送电子邮件", category: "邮箱", enabled: true, builtIn: true },
+
   // 记忆
   { id: "remember", name: "记住", description: "记住用户信息", category: "记忆", enabled: true, builtIn: true },
   { id: "recall", name: "回忆", description: "回忆用户信息", category: "记忆", enabled: true, builtIn: true },

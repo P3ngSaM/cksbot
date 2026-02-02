@@ -161,6 +161,24 @@ export async function createDefaultTools(config: Config): Promise<AgentTool[]> {
     logger.error("Failed to load schedule tools", error);
   }
 
+  // 加载网络搜索工具
+  try {
+    const { createWebSearchTools } = await import("./web-search.js");
+    allTools.push(...createWebSearchTools());
+    logger.info("Loaded web search tools (UAPI Pro Search + fallback)");
+  } catch (error) {
+    logger.error("Failed to load web search tools", error);
+  }
+
+  // 加载邮箱工具
+  try {
+    const { createEmailTools } = await import("./email.js");
+    allTools.push(...createEmailTools());
+    logger.info("Loaded email tools (SMTP)");
+  } catch (error) {
+    logger.error("Failed to load email tools", error);
+  }
+
   // Load Feishu tools if configured
   // NOTE: 只加载日历、审批、文档工具
   // 不加载 contact (feishu_search_user) 和 messaging (feishu_send_message) 工具

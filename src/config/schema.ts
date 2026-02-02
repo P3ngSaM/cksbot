@@ -36,7 +36,7 @@ export const QwenModelConfigSchema = z.object({
   model: z.string().optional(),  // 默认 qwen-max
   realtimeModel: z.string().optional(),  // 实时语音模型，默认 qwen-omni-turbo-realtime
   voice: z.string().optional(),  // 音色：Cherry, Serena, Ethan 等
-  speechRate: z.number().min(0.5).max(2.0).default(1.2),  // 语速：0.5-2.0，默认 1.2 (稍快)
+  speechRate: z.number().min(0.5).max(2.0).default(1.5),  // 语速：0.5-2.0，默认 1.5 (快速)
 });
 
 // 视觉模型配置
@@ -105,11 +105,27 @@ export const GatewayConfigSchema = z.object({
   host: z.string().default("127.0.0.1"),
 });
 
+// Services configuration (search, email, etc.)
+export const ServicesConfigSchema = z.object({
+  uapiSearch: z.object({
+    apiKey: z.string().optional(), // Optional: UAPI Search is free, API key can enhance rate limits
+    endpoint: z.string().url().default("https://uapis.cn/api/v1/search/aggregate"),
+  }).optional(),
+  email: z.object({
+    email: z.string().email(),      // 邮箱地址
+    authCode: z.string(),           // 授权码（不是登录密码）
+    smtpHost: z.string().optional(), // SMTP 服务器（可选，自动检测）
+    smtpPort: z.number().optional(), // SMTP 端口（可选）
+    secure: z.boolean().optional(),  // 是否使用 SSL（可选）
+  }).optional(),
+});
+
 export const ConfigSchema = z.object({
   agent: AgentConfigSchema.default({}),
   models: ModelsConfigSchema.default({}),
   channels: ChannelsConfigSchema.default({}),
   gateway: GatewayConfigSchema.default({}),
+  services: ServicesConfigSchema.default({}),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -120,6 +136,7 @@ export type SpeechConfig = z.infer<typeof SpeechConfigSchema>;
 export type FeishuChannelConfig = z.infer<typeof FeishuChannelConfigSchema>;
 export type ChannelsConfig = z.infer<typeof ChannelsConfigSchema>;
 export type GatewayConfig = z.infer<typeof GatewayConfigSchema>;
+export type ServicesConfig = z.infer<typeof ServicesConfigSchema>;
 
 export function getDefaultConfig(): Config {
   return ConfigSchema.parse({});

@@ -28,6 +28,21 @@ export function renderSchedules(props: SchedulesProps) {
     }
   };
 
+  const getActionLabel = (action: ScheduledTask['action']) => {
+    switch (action.type) {
+      case 'send_wechat':
+        return html`<span class="badge badge-success">微信 → ${action.contact || '?'}</span>`;
+      case 'send_feishu':
+        return html`<span class="badge badge-info">飞书 → ${action.contact || '?'}</span>`;
+      case 'send_message':
+        return html`<span class="badge badge-info">消息</span>`;
+      case 'run_agent':
+        return html`<span class="badge badge-warning">Agent</span>`;
+      default:
+        return html`<span class="badge">${action.type}</span>`;
+    }
+  };
+
   return html`
     <div class="card">
       <div class="card-header">
@@ -49,38 +64,38 @@ export function renderSchedules(props: SchedulesProps) {
           <table class="table">
             <thead>
               <tr>
-                <th>任务ID</th>
                 <th>内容</th>
-                <th>类型</th>
+                <th>发送方式</th>
                 <th>重复</th>
                 <th>状态</th>
-                <th>下次执行</th>
+                <th>执行时间</th>
+                <th>上次执行</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
               ${schedules.map(task => html`
                 <tr>
-                  <td>
-                    <code style="font-size: 0.75rem;">${task.id.substring(0, 12)}...</code>
-                  </td>
                   <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     ${task.action.content}
                   </td>
                   <td>
-                    <span class="badge ${task.action.type === 'send_message' ? 'badge-info' : 'badge-warning'}">
-                      ${task.action.type === 'send_message' ? '📨 消息' : '🤖 Agent'}
-                    </span>
+                    ${getActionLabel(task.action)}
                   </td>
                   <td>${getRepeatLabel(task.repeat)}</td>
                   <td>
                     ${task.enabled
-                      ? html`<span class="badge badge-success">启用</span>`
-                      : html`<span class="badge badge-error">禁用</span>`
+                      ? html`<span class="badge badge-success">待执行</span>`
+                      : task.lastRun
+                        ? html`<span class="badge badge-info">已完成</span>`
+                        : html`<span class="badge badge-error">已禁用</span>`
                     }
                   </td>
-                  <td style="font-size: 0.875rem; color: var(--color-text-secondary);">
+                  <td style="font-size: 0.875rem; color: var(--text-secondary);">
                     ${formatDate(task.executeAt)}
+                  </td>
+                  <td style="font-size: 0.875rem; color: var(--text-secondary);">
+                    ${task.lastRun ? formatDate(task.lastRun) : '-'}
                   </td>
                   <td>
                     <button
@@ -102,13 +117,13 @@ export function renderSchedules(props: SchedulesProps) {
       <div class="card-header">
         <h3 class="card-title">💡 使用提示</h3>
       </div>
-      <div style="color: var(--color-text-secondary); font-size: 0.875rem;">
-        <p style="margin-bottom: var(--spacing-sm);">你可以通过飞书对话创建定时任务，例如：</p>
+      <div style="color: var(--text-secondary); font-size: 0.875rem;">
+        <p style="margin-bottom: var(--spacing-sm);">你可以通过对话创建定时任务，例如：</p>
         <ul style="padding-left: var(--spacing-lg); margin: 0;">
+          <li>"18点微信给张三发消息问他到哪了"</li>
           <li>"每天早上8点给我发早安问候"</li>
           <li>"明天下午3点提醒我开会"</li>
           <li>"每周一早上9点提醒我写周报"</li>
-          <li>"3分钟后提醒我休息"</li>
         </ul>
       </div>
     </div>

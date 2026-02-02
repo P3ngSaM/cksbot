@@ -247,17 +247,22 @@ export function getAllConversations(): ConversationSummary[] {
   const conversations: ConversationSummary[] = [];
 
   for (const [sessionId, session] of Object.entries(store.sessions)) {
-    // 只返回 web-chat 开头的对话（UI 对话）
-    if (!sessionId.startsWith("web-chat")) continue;
+    // 返回 web-chat 开头的对话（UI 对话）和 voice 开头的对话（语音对话）
+    if (!sessionId.startsWith("web-chat") && !sessionId.startsWith("voice-")) continue;
 
     const messages = session.messages.filter(m => typeof m.content === "string");
     if (messages.length === 0) continue;
 
     // 标题：第一条用户消息的前 30 个字符
     const firstUserMsg = messages.find(m => m.role === "user");
-    const title = firstUserMsg
+    let title = firstUserMsg
       ? (firstUserMsg.content as string).substring(0, 30) + ((firstUserMsg.content as string).length > 30 ? "..." : "")
       : "新对话";
+
+    // 语音对话添加标记
+    if (sessionId.startsWith("voice-")) {
+      title = "🎤 " + title;
+    }
 
     // 预览：最后一条消息
     const lastMsg = messages[messages.length - 1];
