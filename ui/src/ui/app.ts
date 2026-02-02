@@ -1096,6 +1096,7 @@ export class CKSBotApp extends LitElement {
   @state() modelName = 'MiniMax-M2.1';
   @state() apiKey = '';
   @state() baseUrl = 'https://api.minimaxi.com/anthropic';
+  @state() qwenApiKey = '';
   @state() feishuAppId = '';
   @state() feishuAppSecret = '';
   @state() feishuMode: 'websocket' | 'webhook' = 'websocket';
@@ -1898,6 +1899,7 @@ export class CKSBotApp extends LitElement {
           apiKey: this.apiKey,
           baseUrl: this.baseUrl,
         },
+        qwenApiKey: this.qwenApiKey,
         channels: {
           feishu: this.feishuAppId && this.feishuAppSecret ? {
             appId: this.feishuAppId,
@@ -2076,6 +2078,8 @@ export class CKSBotApp extends LitElement {
         onModelNameChange: (v) => { this.modelName = v; },
         onApiKeyChange: (v) => { this.apiKey = v; },
         onBaseUrlChange: (v) => { this.baseUrl = v; },
+        qwenApiKey: this.qwenApiKey,
+        onQwenApiKeyChange: (v) => { this.qwenApiKey = v; },
         onFeishuAppIdChange: (v) => { this.feishuAppId = v; },
         onFeishuAppSecretChange: (v) => { this.feishuAppSecret = v; },
         onFeishuModeChange: (v) => { this.feishuMode = v; },

@@ -31,6 +31,7 @@ export interface OnboardingProps {
   modelName: string;
   apiKey: string;
   baseUrl: string;
+  qwenApiKey: string;
   // Feishu config
   feishuAppId: string;
   feishuAppSecret: string;
@@ -45,6 +46,7 @@ export interface OnboardingProps {
   onModelNameChange: (value: string) => void;
   onApiKeyChange: (value: string) => void;
   onBaseUrlChange: (value: string) => void;
+  onQwenApiKeyChange: (value: string) => void;
   onFeishuAppIdChange: (value: string) => void;
   onFeishuAppSecretChange: (value: string) => void;
   onFeishuModeChange: (value: 'websocket' | 'webhook') => void;
@@ -230,7 +232,7 @@ export function renderOnboarding(props: OnboardingProps) {
       /* Provider Selection */
       .provider-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
         margin-bottom: 24px;
       }
@@ -894,6 +896,7 @@ function renderModel(props: OnboardingProps) {
     { id: 'minimax', name: 'MiniMax', desc: '推荐·中文优化' },
     { id: 'anthropic', name: 'Anthropic', desc: 'Claude 系列' },
     { id: 'openai', name: 'OpenAI', desc: 'GPT 系列' },
+    { id: 'qwen', name: 'Qwen', desc: '通义千问·语音' },
   ];
 
   return html`
@@ -942,7 +945,7 @@ function renderModel(props: OnboardingProps) {
         </div>
       </div>
 
-      ${props.modelProvider !== 'minimax' ? html`
+      ${props.modelProvider !== 'minimax' && props.modelProvider !== 'qwen' ? html`
         <div class="form-group">
           <label class="form-label" for="base-url">API Base URL</label>
           <input
@@ -955,6 +958,26 @@ function renderModel(props: OnboardingProps) {
           />
         </div>
       ` : ''}
+
+      <!-- Qwen API Key for Voice (separate from main API Key) -->
+      <div class="form-group">
+        <label class="form-label" for="qwen-api-key">
+          Qwen API Key
+          <span style="font-size: 12px; font-weight: 400; color: #737373; margin-left: 8px;">(实时语音功能)</span>
+        </label>
+        <input
+          id="qwen-api-key"
+          type="password"
+          class="form-input"
+          placeholder="sk-..."
+          .value=${props.qwenApiKey}
+          @input=${(e: Event) => props.onQwenApiKeyChange((e.target as HTMLInputElement).value)}
+        />
+        <div class="form-hint">
+          ${icons.info}
+          <span>用于实时语音对话功能，可选</span>
+        </div>
+      </div>
 
       <div class="button-group">
         <button class="btn btn-text" @click=${props.onSkip}>跳过</button>

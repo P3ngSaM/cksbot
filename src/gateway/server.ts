@@ -568,6 +568,7 @@ async function handleRPCRequest(
           apiKey?: string;
           baseUrl?: string;
         };
+        qwenApiKey?: string;
         channels?: {
           feishu?: {
             appId?: string;
@@ -598,6 +599,18 @@ async function handleRPCRequest(
             updatedConfig.models.anthropic = { apiKey, baseUrl };
           } else if (provider === 'openai' && apiKey) {
             updatedConfig.models.openai = { apiKey, baseUrl, model: configParams.model.modelName };
+          } else if (provider === 'qwen' && apiKey) {
+            updatedConfig.models.qwen = { apiKey, speechRate: 1.2 };
+          }
+        }
+
+        // Update Qwen API Key for voice (independent of provider)
+        if (configParams.qwenApiKey) {
+          updatedConfig.models = updatedConfig.models || {};
+          if (!updatedConfig.models.qwen) {
+            updatedConfig.models.qwen = { apiKey: configParams.qwenApiKey, speechRate: 1.2 };
+          } else {
+            updatedConfig.models.qwen.apiKey = configParams.qwenApiKey;
           }
         }
 
